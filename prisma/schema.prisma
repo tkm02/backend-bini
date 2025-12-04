@@ -105,7 +105,7 @@ model Review {
 
 model Booking {
   id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  status         String   @default("pending") // "pending" | "confirmed" | "cancelled" | "completed"
+  status         String   @default("completed") // "pending" | "confirmed" | "cancelled" | "completed"
   startDate      DateTime
   endDate        DateTime?
   numberOfPeople Int

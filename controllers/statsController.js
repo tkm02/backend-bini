@@ -16,7 +16,7 @@ const getDashboardStats = async (req, res) => {
     res.json({
       totalUsers,
       totalSites,
-      totalBookings,
+      totalBookings, 
       totalReviews,
       avgRating: avgRating._avg.rating?.toFixed(1) || 0
     });
