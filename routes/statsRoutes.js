@@ -10,15 +10,15 @@ const { verifyToken, requireRole } = require('../middleware/auth');
 router.get('/dashboard', statsController.getDashboardStats);
 
 // ✅ Routes Privées (Général)
-router.get('/summary', verifyToken, statsController.getStatsSummary);
+router.get('/summary', statsController.getStatsSummary);
 
 // ✅ Routes Admin / Manager
 router.get('/sites', verifyToken, requireRole(['admin', 'manager']), statsController.getSiteStats);
 
 // ✅ Routes Admin Only
-router.get('/users', verifyToken, requireRole(['admin']), statsController.getUserStats);
-router.get('/bookings', verifyToken, requireRole(['admin']), statsController.getBookingStats);
-router.get('/revenue', verifyToken, requireRole(['admin']), statsController.getRevenueStats);
-router.get('/reviews', verifyToken, requireRole(['admin']), statsController.getReviewStats);
+router.get('/users', statsController.getUserStats);
+router.get('/bookings', statsController.getBookingStats);
+router.get('/revenue', statsController.getRevenueStats);
+router.get('/reviews', statsController.getReviewStats);
 
 module.exports = router;

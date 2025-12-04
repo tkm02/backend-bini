@@ -24,7 +24,7 @@ model User {
   password     String
   firstName    String
   lastName     String
-  role         String   @default("Superviseur") // "Admin" | "Superviseur" | "Agent" | "Manager" | "PDG"
+  role         String   @default("Superviseur") // "Superviseur" | "Agent" | "PDG"
   phone        String?
   profileImage String?
   isActive     Boolean  @default(true)
@@ -87,7 +87,7 @@ model Review {
   status    String   @default("approved") // "approved" | "pending" | "rejected"
   name      String
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime  @updatedAt
   location  String  
   // Relations
   userId    String?  @db.ObjectId
@@ -105,7 +105,7 @@ model Review {
 
 model Booking {
   id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  status         String   @default("pending") // "pending" | "confirmed" | "cancelled" | "completed"
+  status         String   @default("completed") // "pending" | "confirmed" | "cancelled" | "completed"
   startDate      DateTime
   endDate        DateTime?
   numberOfPeople Int

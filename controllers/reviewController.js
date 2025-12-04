@@ -81,19 +81,7 @@ const createReview = async (req, res) => {
       return res.status(404).json({ error: "Site non trouvé" });
     }
 
-    // Vérifier pas de doublon
-    // const existingReview = await prisma.review.findUnique({
-    //   where: {
-    //     userId_siteId: {
-    //       userId: req.userId,
-    //       siteId
-    //     }
-    //   }
-    // });
-
-    // if (existingReview) {
-    //   return res.status(409).json({ error: 'Vous avez déjà avisé ce site' });
-    // }
+    
 
     const review = await prisma.review.create({
       data: {
