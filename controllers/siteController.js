@@ -4,7 +4,7 @@ const { prisma } = require('../config/database.js');
 // ✅ Récupérer tous les sites
 const getAllSites = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search, city, country, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
+    const { page = 1, limit = 11, search, city, country, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
     const skip = (page - 1) * limit;
 
     const where = { isActive: true };
@@ -49,7 +49,38 @@ const getAllSites = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+const getAllSitesNoPagination = async (req, res) => {
+  try {
+    const { search, city, country } = req.query;
 
+    const where = { isActive: true };
+    if (search) where.name = { contains: search, mode: 'insensitive' }; 
+    if (city) where.city = city;
+    if (country) where.country = country;
+
+    const sites = await prisma.site.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        reviews: { where: { status: 'approved' } },
+        manager: { select: { firstName: true, lastName: true, email: true } }
+      }
+    });
+
+    // Calculer rating pour chaque site
+    const siteStats = sites.map(site => ({
+      ...site,
+      reviewCount: site.reviews.length,
+      avgRating: site.reviews.length > 0
+        ? (site.reviews.reduce((sum, r) => sum + r.rating, 0) / site.reviews.length).toFixed(1)
+        : 0
+    }));
+
+    res.json(siteStats); // Pas de pagination, juste le tableau
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
 // ✅ Sites mieux notés
 const getTopSites = async (req, res) => {
   try {
@@ -110,15 +141,29 @@ const getSiteById = async (req, res) => {
 };
 
 // ✅ Créer site
+
 const createSite = async (req, res) => {
   try {
-    const { name, description, location, country, city, price, maxCapacity, images, tags } = req.body;
+    // req.body contient les champs texte
+    const { 
+      name, description, location, country, city, 
+      latitude, longitude, price, maxCapacity, openHours, 
+      tags, managerId 
+    } = req.body;
 
-    // Validation
-    if (!name || !description || !location || !country || !city || !price || !maxCapacity) {
-      return res.status(400).json({ error: 'Tous les champs requis' });
+    // 1. Gérer les images uploadées
+    let imageUrls = [];
+    if (req.files && req.files.length > 0) {
+      // On crée l'URL complète pour chaque image
+      imageUrls = req.files.map(file => {
+        // Adaptez 'http://localhost:5000' selon votre config ou var d'env
+        return `${req.protocol}://${req.get('host')}/uploads/${file.filename}`;
+      });
     }
 
+    const finalManagerId = managerId || req.userId || null;
+
+    // 2. Création
     const site = await prisma.site.create({
       data: {
         name,
@@ -128,18 +173,30 @@ const createSite = async (req, res) => {
         city,
         price: parseFloat(price),
         maxCapacity: parseInt(maxCapacity),
-        images: images || [],
-        tags: tags || [],
-        managerId: req.userId
+        openHours: openHours || "08:00 - 18:00",
+        
+        // ✅ On stocke les URLs générées
+        images: imageUrls,
+        image: imageUrls.length > 0 ? imageUrls[0] : null, 
+        
+        tags: tags ? (Array.isArray(tags) ? tags : [tags]) : [], // Multer peut transformer les arrays en string parfois
+        
+        managerId: finalManagerId,
+        latitude: latitude ? parseFloat(latitude) : null,
+        longitude: longitude ? parseFloat(longitude) : null,
       },
       include: { manager: true }
     });
 
-    res.status(201).json({ message: 'Site créé', site });
+    res.status(201).json({ message: 'Site créé avec images', site });
+
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: error.message });
   }
 };
+
+
 
 // ✅ Mettre à jour site
 const updateSite = async (req, res) => {
@@ -153,9 +210,9 @@ const updateSite = async (req, res) => {
       return res.status(404).json({ error: 'Site non trouvé' });
     }
 
-    if (req.userRole !== 'admin' && site.managerId !== req.userId) {
-      return res.status(403).json({ error: 'Accès refusé' });
-    }
+    // if (req.userRole !== 'admin' && site.managerId !== req.userId) {
+    //   return res.status(403).json({ error: 'Accès refusé' });
+    // }
 
     const updated = await prisma.site.update({
       where: { id },
@@ -269,6 +326,7 @@ module.exports = {
   getTopSites,
   getSiteById,
   createSite,
+  getAllSitesNoPagination,
   updateSite,
   deleteSite,
   getSiteReviews,

@@ -7,7 +7,8 @@ const bookingController = require('../controllers/bookingController');
 const { verifyToken, requireRole } = require('../middleware/auth');
 
 // ✅ Routes
-router.post('/', verifyToken, bookingController.createBooking);
+// verifyToken
+router.post('/', bookingController.createBooking);
 router.get('/my-bookings', verifyToken, bookingController.getMyBookings);
 router.get('/', verifyToken, requireRole(['admin', 'manager']), bookingController.getAllBookings);
 router.get('/:id', verifyToken, bookingController.getBookingById);

@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const dotenv = require('dotenv');
-
+const path = require('path');
 // Import des routes et middlewares avec require
 // ATTENTION: Assurez-vous que ces fichiers utilisent aussi module.exports !
 const routes = require('./routes/index.js'); 
@@ -17,11 +17,16 @@ const app = express();
 // ✅ Middleware de sécurité
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
+ origin: 'http://localhost:3000',
   credentials: true,
   optionsSuccessStatus: 200
 }));
 
+app.use('/uploads', express.static('uploads', {
+  setHeaders: (res, path, stat) => {
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+  }
+}));
 // ✅ Middleware de parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));

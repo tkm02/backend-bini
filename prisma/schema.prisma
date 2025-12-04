@@ -25,6 +25,14 @@ datasource db {
 //   provider = "mongodb"
 // }
 
+type Activity {
+  id          String
+  name        String
+  description String?
+  duration    String?  // Ex: "2h"
+  price       Float?
+  icon        String?  // Ex: "Mountain", "Waves"
+}                           
 // ✅ Model User
 model User {
   id            String    @id @default(auto()) @map("_id") @db.ObjectId
@@ -58,23 +66,26 @@ model Site {
   image         String?
   images        String[]
   price         Float
-  currency      String    @default("USD")
+  currency      String    @default("XOF")
   rating        Float     @default(0)
   maxCapacity   Int
-  openHours     String
+  openHours     String?   // J'ai mis openHours optionnel aussi, c'est plus pratique !
   tags          String[]
+  activities    Activity[]
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  // Relations
-  managerId     String    @db.ObjectId
-  manager       User      @relation("SiteManager", fields: [managerId], references: [id])
+  // Relations (Optionnelles maintenant)
+  managerId     String?   @db.ObjectId  // <--- AJOUT DU ?
+  manager       User?     @relation("SiteManager", fields: [managerId], references: [id]) // <--- AJOUT DU ?
+  
   reviews       Review[]
   bookings      Booking[]
 
   @@index([name, city, country])
 }
+
 
 // ✅ Model Review
 model Review {
