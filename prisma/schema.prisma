@@ -76,10 +76,16 @@ model Site {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+<<<<<<< HEAD
   // Relations (Optionnelles maintenant)
   managerId     String?   @db.ObjectId  // <--- AJOUT DU ?
   manager       User?     @relation("SiteManager", fields: [managerId], references: [id]) // <--- AJOUT DU ?
   
+=======
+  // Relations
+  managerId     String?    @db.ObjectId
+  manager       User?      @relation("SiteManager", fields: [managerId], references: [id])
+>>>>>>> 4a02205874fe72c22f3da1b94a100a5f9d821b4e
   reviews       Review[]
   bookings      Booking[]
 
@@ -97,8 +103,8 @@ model Review {
   updatedAt     DateTime  @updatedAt
 
   // Relations
-  userId        String    @db.ObjectId
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String?    @db.ObjectId
+  user          User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   siteId        String    @db.ObjectId
   site          Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)

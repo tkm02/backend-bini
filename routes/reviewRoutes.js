@@ -16,9 +16,10 @@ const validateRating = (rating) => rating >= 1 && rating <= 5;
 // ✅ Routes
 router.get('/', reviewController.getReviews);
 
-router.post('/', verifyToken, async (req, res, next) => {
+router.post('/', async (req, res, next) => {
   try {
     const { rating } = req.body;
+    console.log(rating);
     if (!rating || !validateRating(rating)) {
       return res.status(400).json({ error: 'La note doit être entre 1 et 5' });
     }
@@ -30,7 +31,7 @@ router.post('/', verifyToken, async (req, res, next) => {
 
 router.get('/:id', reviewController.getReviewById);
 
-router.put('/:id', verifyToken, async (req, res, next) => {
+router.put('/:id', async (req, res, next) => {
   try {
     const { rating } = req.body;
     if (rating && !validateRating(rating)) {
@@ -42,7 +43,7 @@ router.put('/:id', verifyToken, async (req, res, next) => {
   }
 });
 
-router.delete('/:id', verifyToken, reviewController.deleteReview);
+router.delete('/:id', reviewController.deleteReview);
 
 // Routes Admin
 router.put('/:id/approve', verifyToken, requireRole(['admin']), reviewController.approveReview);
