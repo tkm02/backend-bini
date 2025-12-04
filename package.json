@@ -19,7 +19,23 @@
     "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^24.10.1",
     "nodemon": "^3.1.7",
-    "prisma": "^6.0.0"
-  }
+    "prisma": "^6.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "description": "// prisma/schema.prisma",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tkm02/backend-bini.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tkm02/backend-bini/issues"
+  },
+  "homepage": "https://github.com/tkm02/backend-bini#readme"
 }

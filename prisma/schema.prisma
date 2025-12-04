@@ -68,8 +68,8 @@ model Site {
   updatedAt     DateTime  @updatedAt
 
   // Relations
-  managerId     String    @db.ObjectId
-  manager       User      @relation("SiteManager", fields: [managerId], references: [id])
+  managerId     String?    @db.ObjectId
+  manager       User?      @relation("SiteManager", fields: [managerId], references: [id])
   reviews       Review[]
   bookings      Booking[]
 
@@ -86,8 +86,8 @@ model Review {
   updatedAt     DateTime  @updatedAt
 
   // Relations
-  userId        String    @db.ObjectId
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String?    @db.ObjectId
+  user          User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   siteId        String    @db.ObjectId
   site          Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
