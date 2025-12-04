@@ -1,13 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
-  // output   = "src/prisma/schema.prisma"
-  // output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -15,132 +7,145 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// prisma/schema.prisma
+/* -------- Types embarqués -------- */
 
-// generator client {
-//   provider = "prisma-client-js"
-// }
-
-// datasource db {
-//   provider = "mongodb"
-// }
-
-type Activity {
+type SiteActivities {
   id          String
   name        String
-  description String?
-  duration    String?  // Ex: "2h"
-  price       Float?
-  icon        String?  // Ex: "Mountain", "Waves"
-}                           
-// ✅ Model User
-model User {
-  id            String    @id @default(auto()) @map("_id") @db.ObjectId
-  email         String    @unique
-  password      String
-  firstName     String
-  lastName      String
-  role          String    @default("user") // admin, manager, user
-  phone         String?
-  profileImage  String?
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
-  // Relations
-  reviews       Review[]
-  bookings      Booking[]
-  sites         Site[]    @relation("SiteManager")
+  description String
+  duration    String
 }
 
-// ✅ Model Site (Lieu touristique)
-model Site {
-  id            String    @id @default(auto()) @map("_id") @db.ObjectId
-  name          String
-  description   String
-  location      String
-  country       String
-  city          String
-  latitude      Float?
-  longitude     Float?
-  image         String?
-  images        String[]
-  price         Float
-  currency      String    @default("XOF")
-  rating        Float     @default(0)
-  maxCapacity   Int
-  openHours     String?   // J'ai mis openHours optionnel aussi, c'est plus pratique !
-  tags          String[]
-  activities    Activity[]
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+/* -------- Modèle User -------- */
 
-<<<<<<< HEAD
-  // Relations (Optionnelles maintenant)
-  managerId     String?   @db.ObjectId  // <--- AJOUT DU ?
-  manager       User?     @relation("SiteManager", fields: [managerId], references: [id]) // <--- AJOUT DU ?
-  
-=======
+model User {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  email        String   @unique
+  password     String
+  firstName    String
+  lastName     String
+  role         String   @default("Superviseur") // "Admin" | "Superviseur" | "Agent" | "Manager" | "PDG"
+  phone        String?
+  profileImage String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
   // Relations
-  managerId     String?    @db.ObjectId
-  manager       User?      @relation("SiteManager", fields: [managerId], references: [id])
->>>>>>> 4a02205874fe72c22f3da1b94a100a5f9d821b4e
-  reviews       Review[]
-  bookings      Booking[]
+  reviews   Review[]
+  bookings  Booking[]
+  sites     Site[]   @relation("SiteManager")
+}
+
+/* -------- Modèle Site -------- */
+
+model Site {
+  id           String           @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  description  String
+  location     String
+  country      String
+  city         String
+  image        String
+  images       String[]
+  currency     String           @default("XOF")
+  price        Float            // prix par personne
+  rating       Float            @default(0)
+  maxCapacity  Int              // capacité par jour (BigInt → Int)
+  tags         String[]
+  openHours    String?
+  isActive     Boolean          @default(true)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  // Coordonnées (optionnel)
+  latitude     Float?
+  longitude    Float?
+
+  // Activités embarquées
+  activities       SiteActivities[]
+  // Dates complètes (pour calendrier)
+  unavailableDates String[]
+
+  // Relations
+  managerId   String?  @db.ObjectId
+  manager     User?    @relation("SiteManager", fields: [managerId], references: [id])
+
+  reviews     Review[]
+  bookings    Booking[]
 
   @@index([name, city, country])
+  @@map("Site") // collection Mongo "Site"
 }
 
+/* -------- Modèle Review (UN SEUL, propre) -------- */
 
-// ✅ Model Review
 model Review {
-  id            String    @id @default(auto()) @map("_id") @db.ObjectId
-  rating        Int       // 1-5
-  comment       String
-  status        String    @default("pending") // approved, pending, rejected
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  rating    Int      // 1-5
+  comment   String
+  status    String   @default("approved") // "approved" | "pending" | "rejected"
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  location  String  
   // Relations
-  userId        String?    @db.ObjectId
-  user          User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  siteId        String    @db.ObjectId
-  site          Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  userId    String?  @db.ObjectId
+  user      User?    @relation(fields: [userId], references: [id])
+
+  siteId    String   @db.ObjectId
+  site      Site     @relation(fields: [siteId], references: [id])
 
   @@unique([userId, siteId])
   @@index([status, rating])
+  @@map("reviews") // collection Mongo "reviews"
 }
 
-// ✅ Model Booking
+/* -------- Modèle Booking -------- */
+
 model Booking {
-  id            String    @id @default(auto()) @map("_id") @db.ObjectId
-  status        String    @default("pending") // confirmed, cancelled, completed
-  startDate     DateTime
-  endDate       DateTime
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  status         String   @default("pending") // "pending" | "confirmed" | "cancelled" | "completed"
+  startDate      DateTime
+  endDate        DateTime?
   numberOfPeople Int
-  totalPrice    Float
-  notes         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
+  reference      String?  @unique
+  totalPrice     Float
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  time           String
+  visitorName    String                          // ← AJOUTER
+  visitorEmail   String                          // ← AJOUTER
+  visitorPhone   String                          // ← AJOUTER
+  visitorCountry String                          // ← AJOUTER
+  visitorCity    String                         // ← AJOUTER
+  paymentMethod  String?                         // ← AJOUTER : "mobile" | "card"
+  paymentProvider String?                        // ← AJOUTER : "orange", "mtn", "wave", etc.
+  paymentMobile  String?                         // ← AJOUTER : numéro mobile money
+  paymentStatus  String   @default("paid")    // ← AJOUTER : "pending" | "paid" | "failed"
+  isScanned    Boolean  @default(false)    // ← AJOUTER : validé par le manager
   // Relations
-  userId        String    @db.ObjectId
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  siteId        String    @db.ObjectId
-  site          Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  userId   String? @db.ObjectId
+  user     User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([status, startDate])
+  siteId   String  @db.ObjectId
+  site     Site    @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([status, startDate, reference])
+  @@map("Booking") // collection "Booking" si tu veux, sinon supprime
 }
 
-// ✅ Model Stats (Dashboard stats)
+/* -------- Modèle Stats (dashboard) -------- */
+
 model Stats {
-  id            String    @id @default(auto()) @map("_id") @db.ObjectId
-  totalVisitors Int       @default(0)
-  yearsOfExp    Int       @default(12)
-  totalSites    Int       @default(0)
-  avgRating     Float     @default(4.8)
-  updatedAt     DateTime  @updatedAt
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  totalVisitors Int      @default(0)
+  totalReviews  Int      @default(0)
+  yearsOfExp    Int      @default(12)
+  totalSites    Int      @default(0)
+  avgRating     Float    @default(4.8)
+  updatedAt     DateTime @updatedAt
+
+  @@map("stats") // collection "stats"
 }

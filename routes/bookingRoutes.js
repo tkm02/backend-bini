@@ -11,7 +11,9 @@ const { verifyToken, requireRole } = require('../middleware/auth');
 router.post('/', bookingController.createBooking);
 router.get('/my-bookings', verifyToken, bookingController.getMyBookings);
 router.get('/', verifyToken, requireRole(['admin', 'manager']), bookingController.getAllBookings);
-router.get('/:id', verifyToken, bookingController.getBookingById);
+router.get('/:refCode',bookingController.getBookingByReference)
+// router.get('/:id', bookingController.getBookingById);
+router.put('/:refCode/status', bookingController.updateStatus);
 router.put('/:id', verifyToken, bookingController.updateBooking);
 router.delete('/:id', verifyToken, bookingController.cancelBooking);
 

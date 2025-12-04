@@ -9,7 +9,7 @@ const getDashboardStats = async (req, res) => {
     const totalBookings = await prisma.booking.count();
     const totalReviews = await prisma.review.count();
 
-    const avgRating = await prisma.site.aggregate({
+    const avgRating = await prisma.review.aggregate({
       _avg: { rating: true }
     });
 

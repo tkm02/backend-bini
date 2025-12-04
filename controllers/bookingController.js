@@ -4,41 +4,104 @@ const { prisma } = require('../config/database.js');
 // ✅ Créer réservation
 const createBooking = async (req, res) => {
   try {
-    const { siteId, startDate, endDate, numberOfPeople, notes } = req.body;
+    const {
+      reference,
+      timestamp,
+      site,
+      visitor,
+      booking,
+      payment
+    } = req.body;
 
-    const site = await prisma.site.findUnique({ where: { id: siteId } });
-    if (!site) {
+    console.log("Creating booking with data:", req.body);
+
+    // Validation des données requises
+    if (!site?.id || !visitor?.name || !booking?.date || !payment?.method) {
+      return res.status(400).json({ 
+        error: 'Données incomplètes: site, visiteur, date et paiement requis' 
+      });
+    }
+
+    // Vérifier que le site existe
+    const dbSite = await prisma.site.findUnique({ 
+      where: { id: site.id } 
+    });
+    
+    if (!dbSite) {
       return res.status(404).json({ error: 'Site non trouvé' });
     }
 
-    if (numberOfPeople > site.maxCapacity) {
-      return res.status(400).json({ error: `Capacité maximale: ${site.maxCapacity}` });
+    // Vérifier la capacité
+    if (booking.guestCount > dbSite.maxCapacity) {
+      return res.status(400).json({ 
+        error: `Capacité maximale: ${dbSite.maxCapacity} personnes` 
+      });
     }
 
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-    const totalPrice = site.price * numberOfPeople * days;
+    // Créer la date de début complète (date + heure)
+    const startDate = new Date(`${booking.date}T${booking.time}:00`);
+    
+    // Mapper les activités (simplifié)
+    const activities = booking.activities.map(activity => ({
+      id: activity.id,
+      name: activity.name,
+      duration: activity.duration
+    }));
 
-    const booking = await prisma.booking.create({
+    // Créer la réservation
+    const newBooking = await prisma.booking.create({
       data: {
-        siteId,
-        userId: req.userId,
-        startDate: start,
-        endDate: end,
-        numberOfPeople,
-        totalPrice,
-        notes,
-        status: 'pending'
+        reference: reference || `BINI-${Date.now().toString(36).toUpperCase()}`,
+        siteId: site.id,
+        userId: req.userId || null, // Optionnel si pas connecté
+        
+        // Dates
+        startDate: startDate,
+        time: booking.time,
+        
+        // Visiteurs
+        numberOfPeople: booking.guestCount,
+        visitorName: visitor.name,
+        visitorEmail: visitor.email,
+        visitorPhone: visitor.phone,
+        visitorCountry: visitor.country,
+        visitorCity: visitor.city,
+        
+        // Prix
+        totalPrice: booking.totalPrice || (dbSite.price * booking.guestCount),
+        
+        // Activités
+        // activities: activities,
+        
+        // Paiement
+        paymentMethod: payment.method,
+        paymentProvider: payment.provider,
+        paymentMobile: payment.mobileNumber,
+        paymentStatus: payment.status || 'pending',
+        
+        // Statut
+        status: 'pending',
+        notes: booking.notes || ''
       },
-      include: { site: true, user: true }
+      include: { 
+        site: {
+          select: { id: true, name: true, location: true, price: true }
+        }
+      }
     });
 
-    res.status(201).json({ message: 'Réservation créée', booking });
+    res.status(201).json({ 
+      message: 'Réservation créée avec succès', 
+      booking: newBooking,
+      reference: newBooking.reference
+    });
+
   } catch (error) {
+    console.error("Erreur création booking:", error);
     res.status(500).json({ error: error.message });
   }
 };
+
 
 // ✅ Mes réservations
 const getMyBookings = async (req, res) => {
@@ -121,13 +184,28 @@ const getBookingById = async (req, res) => {
       return res.status(404).json({ error: 'Réservation non trouvée' });
     }
 
-    if (booking.userId !== req.userId && req.userRole !== 'admin') {
-      return res.status(403).json({ error: 'Accès refusé' });
-    }
+    // if (booking.userId !== req.userId && req.userRole !== 'admin') {
+    //   return res.status(403).json({ error: 'Accès refusé' });
+    // }
 
     res.json(booking);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+const getBookingByReference = async (req,res) => {
+    const { refCode } =  req.params;
+
+  try {
+    const booking = await prisma.booking.findUnique({
+      where: { reference: refCode },
+      include: { site: true, user: true }
+    });
+    console.log("Booking found for refCode", refCode, ":", booking);
+    return res.json(booking);
+  } catch (error) {
+    return null;
   }
 };
 
@@ -142,9 +220,9 @@ const updateBooking = async (req, res) => {
       return res.status(404).json({ error: 'Réservation non trouvée' });
     }
 
-    if (booking.userId !== req.userId && req.userRole !== 'admin') {
-      return res.status(403).json({ error: 'Accès refusé' });
-    }
+    // if (booking.userId !== req.userId && req.userRole !== 'admin') {
+    //   return res.status(403).json({ error: 'Accès refusé' });
+    // }
 
     const updated = await prisma.booking.update({
       where: { id },
@@ -155,6 +233,31 @@ const updateBooking = async (req, res) => {
         ...(notes && { notes })
       }
     });
+
+    res.json({ message: 'Réservation mise à jour', booking: updated });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+const updateStatus = async (req, res) => {
+  try {
+    const { refCode } = req.params;
+    const { status } = req.body;
+    console.log(status)
+
+    const booking = await prisma.booking.findUnique({ where: { reference: refCode } });
+    if (!booking) {
+      return res.status(404).json({ error: 'Réservation non trouvée' });
+    }
+    // if (booking.userId !== req.userId && req.userRole !== 'admin') {
+    //   return res.status(403).json({ error: 'Accès refusé' });
+    // }
+
+    const updated = await prisma.booking.update({
+      where: { reference: refCode },
+      data: { isScanned : status }
+    });    
 
     res.json({ message: 'Réservation mise à jour', booking: updated });
   } catch (error) {
@@ -227,5 +330,7 @@ module.exports = {
   updateBooking,
   cancelBooking,
   confirmBooking,
-  completeBooking
+  completeBooking,
+  updateStatus,
+  getBookingByReference
 };

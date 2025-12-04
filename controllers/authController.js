@@ -1,15 +1,15 @@
 // src/controllers/authController.js
 // const  prisma } from '../config/database.js';
 const { prisma } = require('../config/database.js');
-const bycrpt = require('bcryptjs');
+// const bycrpt = require('bcryptjs');
 const jwt = require('jsonwebtoken'); 
-// import bcrypt from 'bcryptjs';
+const bcrypt = require('bcryptjs') ;
 // import jwt from 'jsonwebtoken';
 
 // ✅ Register - Créer un compte
 const register = async (req, res) => {
   try {
-    const { email, password, firstName, lastName } = req.body;
+    const { email, password, firstName, lastName, role, siteId } = req.body;
 
     // Vérifier email unique
     const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -17,23 +17,57 @@ const register = async (req, res) => {
       return res.status(409).json({ error: 'Email déjà utilisé' });
     }
 
+    // Si un siteId est fourni, vérifier qu'il existe
+    if (siteId) {
+      const site = await prisma.site.findUnique({ where: { id: siteId } });
+      if (!site) {
+        return res.status(404).json({ error: 'Site non trouvé' });
+      }
+      
+      // Vérifier si le site a déjà un manager
+      if (site.managerId) {
+        return res.status(400).json({ 
+          error: 'Ce site a déjà un manager assigné' 
+        });
+      }
+    }
+
     // Hasher mot de passe
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Créer utilisateur
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        firstName,
-        lastName,
-        role: 'user'
+    // Créer utilisateur et assigner le site en une transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Créer l'utilisateur
+      const user = await tx.user.create({
+        data: {
+          email,
+          password: hashedPassword,
+          firstName,
+          lastName,
+          role: role || 'Superviseur'
+        }
+      });
+
+      // 2. Si siteId fourni, mettre à jour le site
+      let assignedSite = null;
+      if (siteId) {
+        assignedSite = await tx.site.update({
+          where: { id: siteId },
+          data: { managerId: user.id },
+          select: {
+            id: true,
+            name: true,
+            location: true
+          }
+        });
       }
+
+      return { user, assignedSite };
     });
 
     // Générer JWT
     const token = jwt.sign(
-      { id: user.id, role: user.role, email: user.email },
+      { id: result.user.id, role: result.user.role, email: result.user.email },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
@@ -41,18 +75,21 @@ const register = async (req, res) => {
     res.status(201).json({
       message: 'Utilisateur créé avec succès',
       user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role
+        id: result.user.id,
+        email: result.user.email,
+        firstName: result.user.firstName,
+        lastName: result.user.lastName,
+        role: result.user.role,
+        assignedSite: result.assignedSite
       },
       token
     });
   } catch (error) {
+    console.error('Register error:', error);
     res.status(500).json({ error: error.message });
   }
 };
+
 
 // ✅ Login - Se connecter
 const login = async (req, res) => {
