@@ -54,7 +54,7 @@ const getUserStats = async (req, res) => {
   try {
     const totalUsers = await prisma.user.count();
     const adminCount = await prisma.user.count({ where: { role: 'admin' } });
-    const managerCount = await prisma.user.count({ where: { role: 'manager' } });
+    const managerCount = await prisma.user.count({ where: { role: 'Superviseur' } });
     const userCount = await prisma.user.count({ where: { role: 'user' } });
 
     res.json({
@@ -124,6 +124,7 @@ const getRevenueStats = async (req, res) => {
 const getReviewStats = async (req, res) => {
   try {
     const totalReviews = await prisma.review.count();
+
     const approvedReviews = await prisma.review.count({ where: { status: 'approved' } });
     const pendingReviews = await prisma.review.count({ where: { status: 'pending' } });
 
@@ -132,10 +133,15 @@ const getReviewStats = async (req, res) => {
       _count: true
     });
 
+    const avgRating = await prisma.review.aggregate({
+      _avg: { rating: true }
+    });
+
     res.json({
       totalReviews,
       byStatus: { approved: approvedReviews, pending: pendingReviews },
-      ratingDistribution
+      ratingDistribution,
+      avgRating: avgRating._avg.rating || 0
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
