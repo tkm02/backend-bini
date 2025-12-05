@@ -7,9 +7,9 @@ const userController = require('../controllers/userController');
 const { verifyToken, requireRole } = require('../middleware/auth');
 
 // ✅ Routes Admin Only
-router.get('/', verifyToken, requireRole(['admin']), userController.getAllUsers);
-router.delete('/:id', verifyToken, requireRole(['admin']), userController.deleteUser);
-router.put('/:id/role', verifyToken, requireRole(['admin']), userController.updateUserRole);
+router.get('/', userController.getAllUsers);
+router.delete('/:id', userController.deleteUser);
+router.put('/:id/role', userController.updateUserRole);
 
 // ✅ Routes Utilisateur / Admin
 router.get('/:id', verifyToken, userController.getUserById);

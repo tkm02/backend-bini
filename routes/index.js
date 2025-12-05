@@ -9,7 +9,7 @@ const siteRoutes = require('./siteRoutes');
 const reviewRoutes = require('./reviewRoutes');
 const bookingRoutes = require('./bookingRoutes');
 const statsRoutes = require('./statsRoutes');
-
+const analyticsRoutes = require('./analyticsRoutes');
 // Montage des routes
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
@@ -17,5 +17,6 @@ router.use('/sites', siteRoutes);
 router.use('/reviews', reviewRoutes);
 router.use('/bookings', bookingRoutes);
 router.use('/stats', statsRoutes);
+router.use('/analytics', analyticsRoutes);
 
 module.exports = router;

@@ -81,6 +81,14 @@ const createReview = async (req, res) => {
       return res.status(404).json({ error: "Site non trouvé" });
     }
 
+    // type positive, negative, neutral
+    let type = "positive";  // Par défaut, on considère que c'est un avis positif
+    if (rating <= 2) {
+      type = "negative";
+    } else if (rating === 3) {
+      type = "neutral";
+    }
+
     
 
     const review = await prisma.review.create({
@@ -90,6 +98,7 @@ const createReview = async (req, res) => {
         rating,
         comment,
         location,
+        type,
         name,
         status: "approved" // Pour simplifier, on approuve directement
       },
