@@ -237,9 +237,9 @@ const deleteSite = async (req, res) => {
       return res.status(404).json({ error: 'Site non trouvé' });
     }
 
-    if (req.userRole !== 'admin' && site.managerId !== req.userId) {
-      return res.status(403).json({ error: 'Accès refusé' });
-    }
+    // if (req.userRole !== 'admin' && site.managerId !== req.userId) {
+    //   return res.status(403).json({ error: 'Accès refusé' });
+    // }
 
     await prisma.site.delete({ where: { id } });
 

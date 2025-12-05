@@ -170,9 +170,12 @@ const getPdgDashboardStat = async (req, res) => {
         maxCapacity: true,
         bookings: {
           where: {
-            status: "completed"
+            status: { in: ["completed", "confirmed"] } // Inclure confirmed aussi
           },
-          select: { numberOfPeople: true }
+          select: { 
+            numberOfPeople: true,
+            totalPrice: true // ← Ajouter le prix
+          }
         }
       }
     });
@@ -195,10 +198,16 @@ const getPdgDashboardStat = async (req, res) => {
     let totalPeopleAllSites = 0;
     let totalCapacityAllSites = 0;
 
-    // Calcul occupation par site
+    // Calcul occupation et revenus par site
     const siteOccupations = siteOccupancyStats.map(site => {
       const totalPeople = site.bookings.reduce(
         (sum, b) => sum + (b.numberOfPeople || 0),
+        0
+      );
+
+      // ✅ Calculer le revenu total par site
+      const revenue = site.bookings.reduce(
+        (sum, b) => sum + (b.totalPrice || 0),
         0
       );
 
@@ -215,7 +224,9 @@ const getPdgDashboardStat = async (req, res) => {
         siteName: site.name,
         totalPeople,
         maxCapacity,
-        occupationRate: Number(occupationRate.toFixed(2))
+        occupationRate: Number(occupationRate.toFixed(2)),
+        revenue: Number(revenue.toFixed(2)), // ← Ajouter le revenu
+        bookingCount: site.bookings.length    // ← Bonus : nombre de réservations
       };
     });
 
@@ -250,12 +261,16 @@ const getPdgDashboardStat = async (req, res) => {
       globalOccupationRate: Number(globalOccupationRate.toFixed(2)),
       totalPeople: totalPeopleAllSites,
       totalCapacity: totalCapacityAllSites,
-      siteOccupations
+      siteOccupations // ← Maintenant avec revenue et bookingCount
     });
   } catch (error) {
+    console.error('PDG Dashboard Stats Error:', error);
     res.status(500).json({ error: error.message });
   }
 };
+
+module.exports = { getPdgDashboardStat };
+
 
 
 module.exports = {

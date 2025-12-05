@@ -19,11 +19,11 @@ router.get('/:id/reviews', siteController.getSiteReviews);
 // verifyToken
 router.post('/', upload.array('images', 10),siteController.createSite);
 router.put('/:id', siteController.updateSite);
-router.delete('/:id', verifyToken, requireRole(['manager', 'admin']), siteController.deleteSite);
+router.delete('/:id',  siteController.deleteSite);
 router.get('/:id/occupancy',  siteController.getSiteOccupancy);
 
 // ✅ Routes Spécifiques
-router.get('/:id/bookings', verifyToken, requireRole(['manager', 'admin']), siteController.getSiteBookings);
-router.post('/:id/upload', verifyToken, requireRole(['manager', 'admin']), siteController.uploadSiteImage);
+router.get('/:id/bookings', siteController.getSiteBookings);
+router.post('/:id/upload', siteController.uploadSiteImage);
 
 module.exports = router;
