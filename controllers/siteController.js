@@ -1,4 +1,5 @@
 // src/controllers/siteController.js
+const { get } = require('http');
 const { prisma } = require('../config/database.js');
 
 // ✅ Récupérer tous les sites
@@ -321,6 +322,60 @@ const uploadSiteImage = async (req, res) => {
   }
 };
 
+
+
+// ✅ Occupancy du site
+const getSiteOccupancy = async (req, res) => {
+  try {
+    const { id } = req.params;
+    // Implémenter la logique pour calculer l'occupation du site
+
+    // Récupérer le site et sa capacité
+    const site = await prisma.site.findUnique({
+      where: { id },
+      select: { maxCapacity: true }
+    });
+
+    if (!site) {
+      return res.status(404).json({ error: 'Site non trouvé' });
+    }
+
+    // Récupérer toutes les réservations du site
+    const bookings = await prisma.booking.findMany({
+      where: {
+        siteId: id,
+        status: "completed"
+      },
+      select: {
+        numberOfPeople: true
+      }
+    });
+
+    // Total de personnes réservées
+    const totalPeople = bookings.reduce(
+      (sum, b) => sum + (b.numberOfPeople || 0),
+      0
+    );
+
+    // Calcul du taux d’occupation
+    const occupationRate  =
+      site.maxCapacity > 0
+        ? (totalPeople / site.maxCapacity) * 100
+        : 0;
+    
+    
+    res.json({
+      siteId: id,
+      maxCapacity: site.maxCapacity,
+      totalPeople,
+      occupationRate: occupationRate
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 module.exports = {
   getAllSites,
   getTopSites,
@@ -331,5 +386,6 @@ module.exports = {
   deleteSite,
   getSiteReviews,
   getSiteBookings,
-  uploadSiteImage
+  uploadSiteImage,
+  getSiteOccupancy
 };

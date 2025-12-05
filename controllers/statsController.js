@@ -148,6 +148,82 @@ const getReviewStats = async (req, res) => {
   }
 };
 
+// ✅ Stats PDG Dashboard (admin)
+const getPdgDashboardStat = async (req, res) => {
+  try {
+    const getUserStats = prisma.user.count();
+    const getSiteStats = prisma.site.count();
+    const getBookingStats = prisma.booking.count();
+    const getRevenueStats = prisma.booking.aggregate({
+      _sum: { totalPrice: true }
+    });
+    const getReviewStats = prisma.review.aggregate({
+      _avg: { rating: true }
+    });
+    const siteOccupancyStats = await prisma.site.findMany({
+      include: {
+        bookings: {
+          where: { 
+            status: 'completed' 
+          },
+          select: { 
+            numberOfPeople : true
+          }
+        }
+      }
+    });
+
+    if (!siteOccupancyStats.length) {
+      return res.json({ 
+        globalOccupancyRate: 0,
+        totalpeopleBooked: 0, 
+        totalcapacity: 0 
+      });
+    }
+
+    let totalpeopleBooked = 0;
+    let totalcapacity = 0;
+
+    const siteOccupations = sites.map(site => {
+      const totalpeopleBooked = site.bookings.reduce(
+        (sum, b) => sum + (b.numberOfPeople || 0),
+        0
+      );
+
+      const maxCapacity = site.maxCapacity || 0;
+
+      totalPeopleAllSites += totalPeople;
+      totalCapacityAllSites += maxCapacity;
+
+      const occupationRate =
+        maxCapacity > 0
+          ? (totalpeopleBooked / maxCapacity) * 100
+          : 0;
+
+      return {
+        totalPeople,
+        maxCapacity,
+        occupationRate: occupationRate
+      };
+    });
+
+    // ⭐ Calcul global
+    const globalOccupationRate =
+      totalCapacityAllSites > 0
+        ? (totalPeopleAllSites / totalCapacityAllSites) * 100
+        : 0;
+
+    return res.json({
+      globalOccupationRate: Number(globalOccupationRate.toFixed(2)),
+      totalPeople: totalPeopleAllSites,
+      totalCapacity: totalCapacityAllSites,
+      siteOccupations
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 module.exports = {
   getDashboardStats,
   getStatsSummary,
@@ -155,5 +231,6 @@ module.exports = {
   getSiteStats,
   getBookingStats,
   getRevenueStats,
-  getReviewStats
+  getReviewStats,
+  getPdgDashboardStat
 };

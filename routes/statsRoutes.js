@@ -20,5 +20,6 @@ router.get('/users', statsController.getUserStats);
 router.get('/bookings', statsController.getBookingStats);
 router.get('/revenue', statsController.getRevenueStats);
 router.get('/reviews', statsController.getReviewStats);
-
+router.get('/pdgdashoard', statsController.getPdgDashboardStat);
+// router.get('/getGlobalOccupancy', statsController.getGlobalOccupancyStats);
 module.exports = router;
