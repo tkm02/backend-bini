@@ -148,6 +148,116 @@ const getReviewStats = async (req, res) => {
   }
 };
 
+// ✅ Stats PDG Dashboard (admin)
+// ✅ Stats PDG Dashboard (admin)
+const getPdgDashboardStat = async (req, res) => {
+  try {
+    const getUserStats = prisma.user.count();
+    const getSiteStats = prisma.site.count();
+    const getBookingStats = prisma.booking.count();
+    const getRevenueStats = prisma.booking.aggregate({
+      _sum: { totalPrice: true }
+    });
+    const getReviewStats = prisma.review.aggregate({
+      _avg: { rating: true }
+    });
+
+    // Récupérer les sites + réservations completed
+    const siteOccupancyStats = await prisma.site.findMany({
+      select: {
+        id: true,
+        name: true,
+        maxCapacity: true,
+        bookings: {
+          where: {
+            status: "completed"
+          },
+          select: { numberOfPeople: true }
+        }
+      }
+    });
+
+    if (!siteOccupancyStats.length) {
+      return res.json({
+        userStats: 0,
+        siteStats: 0,
+        bookingStats: 0,
+        revenueStats: 0,
+        reviewStats: 0,
+        globalOccupationRate: 0,
+        totalPeople: 0,
+        totalCapacity: 0,
+        siteOccupations: []
+      });
+    }
+
+    // Variables globales
+    let totalPeopleAllSites = 0;
+    let totalCapacityAllSites = 0;
+
+    // Calcul occupation par site
+    const siteOccupations = siteOccupancyStats.map(site => {
+      const totalPeople = site.bookings.reduce(
+        (sum, b) => sum + (b.numberOfPeople || 0),
+        0
+      );
+
+      const maxCapacity = site.maxCapacity || 0;
+
+      totalPeopleAllSites += totalPeople;
+      totalCapacityAllSites += maxCapacity;
+
+      const occupationRate =
+        maxCapacity > 0 ? (totalPeople / maxCapacity) * 100 : 0;
+
+      return {
+        siteId: site.id,
+        siteName: site.name,
+        totalPeople,
+        maxCapacity,
+        occupationRate: Number(occupationRate.toFixed(2))
+      };
+    });
+
+    // Calcul taux global
+    const globalOccupationRate =
+      totalCapacityAllSites > 0
+        ? (totalPeopleAllSites / totalCapacityAllSites) * 100
+        : 0;
+
+    // Exécuter les autres stats en parallèle
+    const [
+      userStats,
+      siteStats,
+      bookingStats,
+      revenueStats,
+      reviewStats
+    ] = await Promise.all([
+      getUserStats,
+      getSiteStats,
+      getBookingStats,
+      getRevenueStats,
+      getReviewStats
+    ]);
+
+    return res.json({
+      userStats,
+      siteStats,
+      bookingStats,
+      revenueStats: revenueStats._sum.totalPrice || 0,
+      reviewStats: reviewStats._avg.rating || 0,
+
+      globalOccupationRate: Number(globalOccupationRate.toFixed(2)),
+      totalPeople: totalPeopleAllSites,
+      totalCapacity: totalCapacityAllSites,
+      siteOccupations
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
 module.exports = {
   getDashboardStats,
   getStatsSummary,
@@ -155,5 +265,6 @@ module.exports = {
   getSiteStats,
   getBookingStats,
   getRevenueStats,
-  getReviewStats
+  getReviewStats,
+  getPdgDashboardStat
 };

@@ -20,6 +20,7 @@ router.get('/:id/reviews', siteController.getSiteReviews);
 router.post('/', upload.array('images', 10),siteController.createSite);
 router.put('/:id', siteController.updateSite);
 router.delete('/:id', verifyToken, requireRole(['manager', 'admin']), siteController.deleteSite);
+router.get('/:id/occupancy',  siteController.getSiteOccupancy);
 
 // ✅ Routes Spécifiques
 router.get('/:id/bookings', verifyToken, requireRole(['manager', 'admin']), siteController.getSiteBookings);
